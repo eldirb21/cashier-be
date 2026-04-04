@@ -412,10 +412,10 @@ paths:
             schema:
               type: object
               required:
-                - token
+                - tokenAccess
                 - password
               properties:
-                token:
+                tokenAccess:
                   type: string
                   example: "example@gmail.com"
                 password:

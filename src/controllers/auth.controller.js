@@ -392,9 +392,9 @@ const forgotPassword = async (req, res, next) => {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const resetPassword = async (req, res, next) => {
   try {
-    const { token, password } = req.body;
+    const { tokenAccess, password } = req.body;
 
-    if (!token || !password) {
+    if (!tokenAccess || !password) {
       return error(res, {
         message: "token dan password wajib diisi",
         status: 400,
@@ -408,7 +408,7 @@ const resetPassword = async (req, res, next) => {
       });
     }
 
-    const resetRecord = await passwordReset.findUnique({ where: { token } });
+    const resetRecord = await passwordReset.findUnique({ where: { token: tokenAccess } });
 
     if (
       !resetRecord ||
@@ -423,18 +423,15 @@ const resetPassword = async (req, res, next) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Transaction: update password + tandai token used + hapus semua refresh token
-    await $transaction([
-      user.update({
-        where: { id: resetRecord.userId },
-        data: { password: hashedPassword },
-      }),
-      passwordReset.update({
-        where: { id: resetRecord.id },
-        data: { used: true },
-      }),
-      token.deleteMany({ where: { userId: resetRecord.userId } }),
-    ]);
+    await user.update({
+      where: { id: resetRecord.userId },
+      data: { password: hashedPassword },
+    })
+    await passwordReset.update({
+      where: { id: resetRecord.id }, data: { used: true },
+    })
+
+    await token.deleteMany({ where: { userId: resetRecord.userId } })
 
     return success(res, {
       message: "Password berhasil direset. Silakan login dengan password baru.",

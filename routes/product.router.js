@@ -1,5 +1,16 @@
+const express = require("express");
+const { authenticate, authorize } = require("../src/middleware/authenticate");
+const { ROLE } = require("../src/libs/enum");
+const ctrl = require("../src/controllers/product.controller");
 
-var express = require('express');
-var router = express.Router();
+const router = express.Router();
 
-module.exports = router
+router.post("/", authenticate, authorize(ROLE.ADMIN), ctrl.createProduct);
+
+router.put("/:id", authorize(ROLE.ADMIN, ROLE.MANAGER), ctrl.updateProduct);
+router.get("/", ctrl.getProducts);
+router.get("/:id", ctrl.getProductById);
+
+router.delete("/:id", authorize(ROLE.ADMIN), ctrl.deleteProduct);
+
+module.exports = router;

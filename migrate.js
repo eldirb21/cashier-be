@@ -4,6 +4,8 @@ const migrations = [
   require("./src/migrations/001_create_users"),
   require("./src/migrations/002_create_refresh_tokens"),
   require("./src/migrations/003_password_resets"),
+  require("./src/migrations/004_product"),
+
 ];
 
 async function migrate() {

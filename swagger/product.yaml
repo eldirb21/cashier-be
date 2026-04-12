@@ -1,0 +1,252 @@
+openapi: 3.0.0
+info:
+  title: Product API
+  description: API untuk manajemen product
+  version: 1.0.0
+
+security:
+  - BearerAuth: []
+  - cookieAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: accessToken
+
+  schemas:
+    Product:
+      type: object
+      required:
+        - id
+        - name
+        - price
+        - cost_price
+      properties:
+        id:
+          type: string
+          example: "prod-1"
+
+        category_id:
+          type: string
+          example: "cat-1"
+
+        supplier_id:
+          type: string
+          example: "sup-1"
+
+        name:
+          type: string
+          example: "Galon Le Minerale 5 L"
+
+        barcode:
+          type: string
+          example: "8992759170570"
+
+        price:
+          type: number
+          example: 15000
+
+        cost_price:
+          type: number
+          example: 12000
+
+        stock:
+          type: integer
+          example: 20
+
+        min_stock:
+          type: integer
+          example: 5
+
+        img_url:
+          type: string
+          example: "https://le-minerale.com/assets/img/product/le-minerale-5l.png"
+
+        is_active:
+          type: boolean
+          example: true
+
+paths:
+  /api/products:
+    post:
+      summary: Tambah product (ADMIN only)
+      tags:
+        - Product
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Product"
+
+      responses:
+        "201":
+          description: Product berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Product berhasil dibuat"
+                  data:
+                    $ref: "#/components/schemas/Product"
+
+        "400":
+          description: Validasi gagal
+
+        "403":
+          description: Tidak punya izin (hanya ADMIN)
+
+        "500":
+          description: Server error
+
+    get:
+      summary: Ambil semua product
+      tags:
+        - Product
+
+      responses:
+        "200":
+          description: List product
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "List product"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Product"
+
+        "500":
+          description: Server error
+
+  /api/products/{id}:
+    get:
+      summary: Detail product
+      tags:
+        - Product
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "prod-1"
+
+      responses:
+        "200":
+          description: Detail product
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Detail product"
+                  data:
+                    $ref: "#/components/schemas/Product"
+
+        "404":
+          description: Product tidak ditemukan
+
+        "500":
+          description: Server error
+
+    put:
+      summary: Update product (ADMIN / MANAGER)
+      tags:
+        - Product
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Product"
+
+      responses:
+        "200":
+          description: Product berhasil diupdate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Product berhasil diupdate"
+                  data:
+                    $ref: "#/components/schemas/Product"
+
+        "403":
+          description: Tidak punya izin
+
+        "404":
+          description: Product tidak ditemukan
+
+        "500":
+          description: Server error
+
+    delete:
+      summary: Hapus product (ADMIN only)
+      tags:
+        - Product
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+
+      responses:
+        "200":
+          description: Product berhasil dihapus
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Product berhasil dihapus"
+
+        "403":
+          description: Tidak punya izin
+
+        "404":
+          description: Product tidak ditemukan
+
+        "500":
+          description: Server error

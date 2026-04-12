@@ -1,8 +1,7 @@
-// src/utils/response.js
 
 const success = (res, { message = "OK", data = undefined, status = 200 } = {}) => {
   const body = { success: true, message };
-  if (data !== undefined) body.data = data;
+  if (data !== undefined) body.data = { ...data };
   return res.status(status).json(body);
 };
 

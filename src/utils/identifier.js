@@ -1,5 +1,3 @@
-// src/utils/identifier.js
-//
 // Mendeteksi apakah identifier adalah email atau nomor telepon,
 // lalu mengembalikan value yang sudah dinormalisasi.
 

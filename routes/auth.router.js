@@ -1,28 +1,7 @@
-// src/routes/auth.routes.js
 const router = require("express").Router();
-const rateLimit = require("express-rate-limit");
 const ctrl = require("../src/controllers/auth.controller");
 const { authenticate } = require("../src/middleware/authenticate");
-
-// ── Rate limiters ──────────────────────────────────────────────
-
-// Login & register: 10 percobaan per 15 menit
-const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10,
-    message: { success: false, message: "Terlalu banyak percobaan. Coba lagi dalam 15 menit." },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-// Forgot password: 5 request per jam
-const forgotLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000,
-    max: 5,
-    message: { success: false, message: "Terlalu banyak request reset password. Coba lagi dalam 1 jam." },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
+const { loginLimiter, forgotLimiter } = require("../src/config/rateLimit");
 
 // ── Public routes ──────────────────────────────────────────────
 router.post("/register", loginLimiter, ctrl.register);

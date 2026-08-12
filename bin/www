@@ -27,11 +27,11 @@ var server = http.createServer(app);
  */
 
 // Jalankan server
-server.listen(process.env.PORT, () =>
+server.listen(process.env.PORT, '0.0.0.0', () => {
   console.log(
     `Running http://localhost:${process.env.PORT} - Swagger http://localhost:${process.env.PORT}/api-docs`
   )
-);
+});
 server.on('error', onError);
 server.on('listening', onListening);
 

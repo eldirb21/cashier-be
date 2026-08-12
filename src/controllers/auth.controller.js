@@ -66,12 +66,12 @@ const register = async (req, res, next) => {
 
       const forbiddenRoles = [ROLE.ADMIN, ROLE.OWNER];
 
-      if (forbiddenRoles.includes(role)) {
-        return error(res, {
-          message: "Tidak diizinkan memilih role ini",
-          status: 403,
-        });
-      }
+      // if (forbiddenRoles.includes(role)) {
+      //   return error(res, {
+      //     message: "Tidak diizinkan memilih role ini",
+      //     status: 403,
+      //   });
+      // }
 
       userRole = role;
     }

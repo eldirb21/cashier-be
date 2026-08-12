@@ -10,7 +10,7 @@ const categoriesRouter = require("./categories.router")
 
 
 router.use("/auth", authRouter)
-router.use("/product", productRouter)
+router.use("/products", productRouter)
 router.use("/supplier", supplierRouter)
 router.use("/categories", categoriesRouter)
 

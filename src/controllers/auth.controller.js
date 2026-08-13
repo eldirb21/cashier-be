@@ -18,18 +18,18 @@ const { ROLE } = require("../libs/enum");
 const register = async (req, res, next) => {
   try {
     const { name, identifier, password, role } = req.body;
+    const parsed = parseIdentifier(identifier);
 
     if (!name?.trim() || !identifier?.trim() || !password) {
       return error(res, {
-        message: "name, identifier dan password wajib diisi",
+        message: `Name, ${parsed.type === "email" ? "Email" : "Nomor HP"} wajib diisi`,
         status: 400,
       });
     }
 
-    const parsed = parseIdentifier(identifier);
     if (!parsed) {
       return error(res, {
-        message: "Identifier tidak valid",
+        message: `${parsed.type === "email" ? "Email" : "Nomor HP"} tidak valid`,
         status: 400,
       });
     }
@@ -128,18 +128,18 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const { identifier, password } = req.body;
+    const parsed = parseIdentifier(identifier);
 
     if (!identifier?.trim() || !password) {
       return error(res, {
-        message: "identifier dan password wajib diisi",
+        message: `${parsed.type === "email" ? "Email" : "Nomor HP"} wajib diisi`,
         status: 400,
       });
     }
 
-    const parsed = parseIdentifier(identifier);
     if (!parsed) {
       return error(res, {
-        message: "Identifier tidak valid",
+        message: `${parsed.type === "email" ? "Email" : "Nomor HP"} tidak valid`,
         status: 400,
       });
     }
@@ -159,7 +159,7 @@ const login = async (req, res, next) => {
 
     if (!userData) {
       return error(res, {
-        message: "Identifier atau password salah",
+        message: `${parsed.type === "email" ? "Email" : "Nomor HP"} yang Anda masukkan tidak sesuai!`,
         status: 401,
       });
     }
@@ -174,7 +174,7 @@ const login = async (req, res, next) => {
     const passwordMatch = await bcrypt.compare(password, userData.password);
     if (!passwordMatch) {
       return error(res, {
-        message: "Identifier atau password salah",
+        message: `${parsed.type === "email" ? "Email" : "Nomor HP"} yang Anda masukkan tidak sesuai!`,
         status: 401,
       });
     }
@@ -351,7 +351,6 @@ const forgotPassword = async (req, res, next) => {
       where: buildWhereFromIdentifier(identifier),
     });
 
-
     if (userData && userData.email) {
       // Batalkan token reset lama
       await passwordReset.updateMany({
@@ -408,7 +407,9 @@ const resetPassword = async (req, res, next) => {
       });
     }
 
-    const resetRecord = await passwordReset.findUnique({ where: { token: tokenAccess } });
+    const resetRecord = await passwordReset.findUnique({
+      where: { token: tokenAccess },
+    });
 
     if (
       !resetRecord ||
@@ -426,12 +427,13 @@ const resetPassword = async (req, res, next) => {
     await user.update({
       where: { id: resetRecord.userId },
       data: { password: hashedPassword },
-    })
+    });
     await passwordReset.update({
-      where: { id: resetRecord.id }, data: { used: true },
-    })
+      where: { id: resetRecord.id },
+      data: { used: true },
+    });
 
-    await token.deleteMany({ where: { userId: resetRecord.userId } })
+    await token.deleteMany({ where: { userId: resetRecord.userId } });
 
     return success(res, {
       message: "Password berhasil direset. Silakan login dengan password baru.",

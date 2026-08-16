@@ -24,7 +24,20 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    const decoded = verifyAccessToken(token);
+    // ── Verifikasi token — tangkap error JWT secara eksplisit ──
+    let decoded;
+    try {
+      decoded = verifyAccessToken(token);
+    } catch (jwtErr) {
+      // JsonWebTokenError, TokenExpiredError, NotBeforeError
+      return error(res, {
+        message:
+          jwtErr.name === "TokenExpiredError"
+            ? "Access token kedaluwarsa"
+            : "Access token tidak valid",
+        status: 401,
+      });
+    }
 
     const userData = await user.findFirst({
       where: { id: decoded.userId },

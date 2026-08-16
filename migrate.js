@@ -1,21 +1,31 @@
+const fs = require("fs");
+const path = require("path");
+
 const { createMigrationsTable, runMigration } = require("./src/libs/migrate");
 
-const migrations = [
-  require("./src/migrations/001_create_users"),
-  require("./src/migrations/002_create_refresh_tokens"),
-  require("./src/migrations/003_password_resets"),
-  require("./src/migrations/004_product"),
-];
+const migrationsPath = path.join(__dirname, "src/migrations");
+
+const migrations = fs
+  .readdirSync(migrationsPath)
+  .filter((file) => file.endsWith(".js"))
+  .sort()
+  .map((file) => require(path.join(migrationsPath, file)));
 
 async function migrate() {
-  await createMigrationsTable();
+  try {
+    await createMigrationsTable();
 
-  for (const m of migrations) {
-    await runMigration(m.name, m.up);
+    for (const migration of migrations) {
+      await runMigration(migration.name, migration.up);
+    }
+
+    console.log("✅ All migrations done");
+  } catch (error) {
+    console.error("❌ Migration failed:", error);
+    process.exitCode = 1;
+  } finally {
+    process.exit();
   }
-
-  console.log("✅ All migrations done");
-  process.exit();
 }
 
 migrate();

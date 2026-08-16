@@ -4,8 +4,10 @@ const path = require("path");
 const name = process.argv[2];
 
 if (!name) {
-  console.error("Migration name is required.");
-  console.error("Example: npm run migration:create -- transactions");
+  console.error(
+    "Migration name is required.\n" +
+      "Example: npm run migration:create -- create_products",
+  );
   process.exit(1);
 }
 
@@ -24,27 +26,23 @@ const numbers = files.map((file) => {
   return match ? Number(match[1]) : 0;
 });
 
-const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+const nextNumber = numbers.length ? Math.max(...numbers) + 1 : 1;
 
 const prefix = String(nextNumber).padStart(3, "0");
-
-const fileName = `${prefix}_${name}.js`;
+const migrationName = `${prefix}_${name}`;
+const fileName = `${migrationName}.js`;
 const filePath = path.join(migrationsDir, fileName);
 
-const migrationName = `${prefix}_${name}`;
+const content = `module.exports = {
+  name: "${migrationName}",
 
-const content = `const db = require('../src/config/database');
-
-module.exports = {
-  name: '${migrationName}',
-
-  async up() {
+  up: async (db) => {
     await db.query(\`
       
     \`);
   },
 
-  async down() {
+  down: async (db) => {
     await db.query(\`
       
     \`);
@@ -54,4 +52,4 @@ module.exports = {
 
 fs.writeFileSync(filePath, content);
 
-console.log(`Migration created: migrations/${fileName}`);
+console.log(`✅ Migration created: src/migrations/${fileName}`);

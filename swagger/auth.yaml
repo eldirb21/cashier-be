@@ -17,7 +17,7 @@ components:
     cookieAuth:
       type: apiKey
       in: cookie
-      name: accessToken
+      name: authorization
  
   schemas:
     Role:

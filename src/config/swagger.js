@@ -17,12 +17,12 @@ const swaggerOptions = {
       title: "Cashier App — API Documentation",
       version: "1.0.0",
       description: `
-## Cara Autentikasi
+## Cara Autentikasi di Swagger
 
 1. Panggil **POST /api/auth/login** dan catat nilai \`accessToken\` dari response.
 2. Klik tombol **Authorize 🔒** di kanan atas.
-3. Pada field **bearerAuth**, masukkan \`accessToken\` (bukan refreshToken!).
-4. Klik **Authorize** → selesai.
+3. Pada field **BearerAuth**, masukkan nilai \`accessToken\` (bukan refreshToken!).
+4. Klik **Authorize** → selesai, semua request akan otomatis menyertakan token.
 
 > ⚠️ **refreshToken** hanya digunakan di endpoint \`POST /api/auth/refresh\`. Jangan gunakan sebagai Bearer token!
       `.trim(),
@@ -33,29 +33,11 @@ const swaggerOptions = {
         description: "Development server",
       },
     ],
-    components: {
-      securitySchemes: {
-        // ✅ Bearer token (gunakan accessToken dari response login)
-        bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-          description:
-            "Masukkan **accessToken** (bukan refreshToken) yang didapat dari response login.",
-        },
-        // Cookie fallback
-        cookieAuth: {
-          type: "apiKey",
-          in: "cookie",
-          name: "authorization",
-        },
-      },
-    },
-    // Terapkan bearerAuth sebagai default global
-    security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+    // securitySchemes didefinisikan di file YAML masing-masing
   },
   apis: yamlFiles,
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 module.exports = swaggerDocs;
+

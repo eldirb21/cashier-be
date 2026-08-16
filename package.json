@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node ./bin/www",
     "migrate": "node migrate.js",
-    "seed": "node src/seeds/index.js"
+    "seed": "node src/seeds/index.js",
+    "migration:create": "node scripts/migration-create.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

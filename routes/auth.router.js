@@ -6,6 +6,7 @@ const { loginLimiter, forgotLimiter } = require("../src/config/rateLimit");
 // ── Public routes ──────────────────────────────────────────────
 router.post("/register", loginLimiter, ctrl.register);
 router.post("/login", loginLimiter, ctrl.login);
+router.post("/google", loginLimiter, ctrl.googleLogin);
 router.post("/refresh", ctrl.refreshTokenHandler);
 router.post("/forgot-password", forgotLimiter, ctrl.forgotPassword);
 router.post("/reset-password", ctrl.resetPassword);

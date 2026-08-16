@@ -1,0 +1,276 @@
+openapi: 3.0.0
+info:
+  title: Category API
+  description: API untuk manajemen kategori produk
+  version: 1.0.0
+
+security:
+  - BearerAuth: []
+  - cookieAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: accessToken
+
+  schemas:
+    Category:
+      type: object
+      required:
+        - name
+      properties:
+        id:
+          type: string
+          example: "CAT-001"
+        name:
+          type: string
+          example: "Makanan"
+        description:
+          type: string
+          example: "Kategori produk makanan & camilan"
+        slug:
+          type: string
+          example: "makanan"
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+paths:
+  /api/categories:
+    post:
+      summary: Tambah kategori (ADMIN / MANAGER / OWNER)
+      tags:
+        - Category
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                id:
+                  type: string
+                  example: "CAT-001"
+                name:
+                  type: string
+                  example: "Makanan"
+                description:
+                  type: string
+                  example: "Kategori produk makanan & camilan"
+                slug:
+                  type: string
+                  example: "makanan"
+                is_active:
+                  type: boolean
+                  example: true
+
+      responses:
+        "201":
+          description: Kategori berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Kategori berhasil dibuat"
+                  data:
+                    $ref: "#/components/schemas/Category"
+
+        "400":
+          description: Validasi gagal
+
+        "409":
+          description: ID atau Slug sudah digunakan
+
+        "500":
+          description: Server error
+
+    get:
+      summary: Ambil semua kategori
+      tags:
+        - Category
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Cari berdasarkan nama / description / slug
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: Filter status aktif
+
+      responses:
+        "200":
+          description: List kategori
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "List kategori berhasil diambil"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Category"
+
+        "500":
+          description: Server error
+
+  /api/categories/{id}:
+    get:
+      summary: Detail kategori (by ID or Slug)
+      tags:
+        - Category
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "CAT-001"
+
+      responses:
+        "200":
+          description: Detail kategori
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Detail kategori"
+                  data:
+                    $ref: "#/components/schemas/Category"
+
+        "404":
+          description: Kategori tidak ditemukan
+
+        "500":
+          description: Server error
+
+    put:
+      summary: Update kategori (ADMIN / MANAGER / OWNER)
+      tags:
+        - Category
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "CAT-001"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                slug:
+                  type: string
+                is_active:
+                  type: boolean
+
+      responses:
+        "200":
+          description: Kategori berhasil diupdate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Kategori berhasil diupdate"
+                  data:
+                    $ref: "#/components/schemas/Category"
+
+        "404":
+          description: Kategori tidak ditemukan
+
+        "500":
+          description: Server error
+
+    delete:
+      summary: Hapus kategori (ADMIN / OWNER)
+      tags:
+        - Category
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "CAT-001"
+
+      responses:
+        "200":
+          description: Kategori berhasil dihapus
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Kategori berhasil dihapus"
+
+        "404":
+          description: Kategori tidak ditemukan
+
+        "500":
+          description: Server error

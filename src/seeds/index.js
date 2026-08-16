@@ -1,6 +1,6 @@
 const db = require("../config/connection");
 
-const seeds = [require("./users"), require("./products")];
+const seeds = [require("./users"), require("./categories"), require("./products")];
 
 async function seed() {
   try {

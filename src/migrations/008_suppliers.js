@@ -1,5 +1,5 @@
 module.exports = {
-  name: "005_transactions",
+  name: "008_suppliers",
 
   up: async (db) => {
     await db.query(`SELECT 1;`);

@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
+const { OAuth2Client } = require("google-auth-library");
 const {
   generateAccessToken,
   generateRefreshToken,
@@ -15,21 +16,54 @@ const { success, error } = require("../utils/response");
 const { user, token, passwordReset } = require("../models");
 const { ROLE } = require("../libs/enum");
 
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// HELPER: Buat access + refresh token & simpan ke DB
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const issueTokens = async (userData) => {
+  const payload = { userId: userData.id, role: userData.role };
+  const accessToken = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
+
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(refreshToken)
+    .digest("hex");
+
+  await token.create({
+    data: {
+      user_id: userData.id,
+      token: hashedToken,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  return { accessToken, refreshToken };
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// REGISTER
+// POST /api/auth/register
+// Body: { name, identifier, password, role? }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const register = async (req, res, next) => {
   try {
     const { name, identifier, password, role } = req.body;
-    const parsed = parseIdentifier(identifier);
 
+    // ── Validasi input dasar ──────────────────────────────────
     if (!name?.trim() || !identifier?.trim() || !password) {
       return error(res, {
-        message: `Name, ${parsed.type === "email" ? "Email" : "Nomor HP"} wajib diisi`,
+        message: "Nama, email/nomor HP, dan password wajib diisi",
         status: 400,
       });
     }
 
+    const parsed = parseIdentifier(identifier);
+
     if (!parsed) {
       return error(res, {
-        message: `${parsed.type === "email" ? "Email" : "Nomor HP"} tidak valid`,
+        message: "Format email atau nomor HP tidak valid",
         status: 400,
       });
     }
@@ -41,6 +75,7 @@ const register = async (req, res, next) => {
       });
     }
 
+    // ── Cek duplikat ─────────────────────────────────────────
     const existing = await user.findMany({
       where: buildWhereFromIdentifier(identifier),
     });
@@ -52,7 +87,7 @@ const register = async (req, res, next) => {
       });
     }
 
-    // 🔐 VALIDASI ROLE
+    // ── Validasi role ─────────────────────────────────────────
     const allowedRoles = Object.values(ROLE);
     let userRole = ROLE.CUSTOMER;
 
@@ -63,19 +98,10 @@ const register = async (req, res, next) => {
           status: 400,
         });
       }
-
-      const forbiddenRoles = [ROLE.ADMIN, ROLE.OWNER];
-
-      // if (forbiddenRoles.includes(role)) {
-      //   return error(res, {
-      //     message: "Tidak diizinkan memilih role ini",
-      //     status: 403,
-      //   });
-      // }
-
       userRole = role;
     }
 
+    // ── Buat user ─────────────────────────────────────────────
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const userData = await user.create({
@@ -89,21 +115,7 @@ const register = async (req, res, next) => {
       },
     });
 
-    const tokenPayload = {
-      userId: userData.id,
-      role: userData.role,
-    };
-
-    const accessToken = generateAccessToken(tokenPayload);
-    const refreshToken = generateRefreshToken(tokenPayload);
-
-    await token.create({
-      data: {
-        user_id: userData.id,
-        token: refreshToken,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
+    const { accessToken, refreshToken } = await issueTokens(userData);
 
     return success(res, {
       message: "Registrasi berhasil",
@@ -125,41 +137,42 @@ const register = async (req, res, next) => {
   }
 };
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// LOGIN
+// POST /api/auth/login
+// Body: { identifier, password }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const login = async (req, res, next) => {
   try {
     const { identifier, password } = req.body;
-    const parsed = parseIdentifier(identifier);
 
     if (!identifier?.trim() || !password) {
       return error(res, {
-        message: `${parsed.type === "email" ? "Email" : "Nomor HP"} wajib diisi`,
+        message: "Email/nomor HP dan password wajib diisi",
         status: 400,
       });
     }
+
+    const parsed = parseIdentifier(identifier);
 
     if (!parsed) {
       return error(res, {
-        message: `${parsed.type === "email" ? "Email" : "Nomor HP"} tidak valid`,
+        message: "Format email atau nomor HP tidak valid",
         status: 400,
       });
     }
 
-    // 🔥 OPTIMAL QUERY (NO OR)
+    // ── Cari user ─────────────────────────────────────────────
     let userData = null;
-
     if (parsed.type === "email") {
-      userData = await user.findFirst({
-        where: { email: parsed.value },
-      });
+      userData = await user.findFirst({ where: { email: parsed.value } });
     } else {
-      userData = await user.findFirst({
-        where: { phone: parsed.value },
-      });
+      userData = await user.findFirst({ where: { phone: parsed.value } });
     }
 
     if (!userData) {
       return error(res, {
-        message: `${parsed.type === "email" ? "Email" : "Nomor HP"} yang Anda masukkan tidak sesuai!`,
+        message: "Email/nomor HP atau password salah",
         status: 401,
       });
     }
@@ -171,35 +184,23 @@ const login = async (req, res, next) => {
       });
     }
 
+    // ── Guard: user Google-only tidak punya password ──────────
+    if (!userData.password) {
+      return error(res, {
+        message: "Akun ini terdaftar via Google. Silakan login dengan Google.",
+        status: 400,
+      });
+    }
+
     const passwordMatch = await bcrypt.compare(password, userData.password);
     if (!passwordMatch) {
       return error(res, {
-        message: `${parsed.type === "email" ? "Email" : "Nomor HP"} yang Anda masukkan tidak sesuai!`,
+        message: "Email/nomor HP atau password salah",
         status: 401,
       });
     }
 
-    const tokenPayload = {
-      userId: userData.id,
-      role: userData.role,
-    };
-
-    const accessToken = generateAccessToken(tokenPayload);
-    const refreshToken = generateRefreshToken(tokenPayload);
-
-    // 🔐 HASH TOKEN (WAJIB)
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(refreshToken)
-      .digest("hex");
-
-    await token.create({
-      data: {
-        user_id: userData.id, // FIX snake_case
-        token: hashedToken,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
+    const { accessToken, refreshToken } = await issueTokens(userData);
 
     const { password: _pwd, ...safeUser } = userData;
 
@@ -216,6 +217,114 @@ const login = async (req, res, next) => {
   }
 };
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GOOGLE LOGIN
+// POST /api/auth/google
+// Body: { idToken }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const googleLogin = async (req, res, next) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return error(res, {
+        message: "idToken Google wajib diisi",
+        status: 400,
+      });
+    }
+
+    // ── Verifikasi ID Token Google ────────────────────────────
+    let ticket;
+    try {
+      ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+    } catch {
+      return error(res, {
+        message: "Token Google tidak valid atau kedaluwarsa",
+        status: 401,
+      });
+    }
+
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+
+    if (!email) {
+      return error(res, {
+        message: "Akun Google tidak memiliki email",
+        status: 400,
+      });
+    }
+
+    // ── Cari user existing by google_id atau email ────────────
+    let userData = await user.findFirst({ where: { google_id: googleId } });
+
+    if (!userData) {
+      // Coba cari by email (akun lama yang mau link ke Google)
+      userData = await user.findFirst({
+        where: { email: email.toLowerCase() },
+      });
+
+      if (userData) {
+        // Link akun existing ke Google ID
+        await user.update({
+          where: { id: userData.id },
+          data: {
+            google_id: googleId,
+            avatar: picture || null,
+          },
+        });
+        userData.google_id = googleId;
+        userData.avatar = picture || null;
+      }
+    }
+
+    // ── Auto-create jika belum ada ────────────────────────────
+    if (!userData) {
+      userData = await user.create({
+        data: {
+          name: name || email.split("@")[0],
+          email: email.toLowerCase(),
+          phone: null,
+          password: null, // Google-only user, tidak punya password
+          google_id: googleId,
+          avatar: picture || null,
+          role: ROLE.CUSTOMER,
+          is_active: true,
+        },
+      });
+    }
+
+    if (!userData.is_active) {
+      return error(res, {
+        message: "Akun kamu dinonaktifkan",
+        status: 403,
+      });
+    }
+
+    const { accessToken, refreshToken } = await issueTokens(userData);
+
+    const { password: _pwd, ...safeUser } = userData;
+
+    return success(res, {
+      message: "Login dengan Google berhasil",
+      data: {
+        user: safeUser,
+        accessToken,
+        refreshToken,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// REFRESH TOKEN
+// POST /api/auth/refresh
+// Body: { refreshToken }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const refreshTokenHandler = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
@@ -227,7 +336,7 @@ const refreshTokenHandler = async (req, res, next) => {
       });
     }
 
-    // 🔐 VERIFY JWT
+    // ── Verifikasi JWT ────────────────────────────────────────
     let decoded;
     try {
       decoded = verifyRefreshToken(refreshToken);
@@ -238,19 +347,15 @@ const refreshTokenHandler = async (req, res, next) => {
       });
     }
 
-    // 🔐 HASH TOKEN (WAJIB)
+    // ── Cek di DB ─────────────────────────────────────────────
     const hashedToken = crypto
       .createHash("sha256")
       .update(refreshToken)
       .digest("hex");
 
-    // 🔎 CEK DB
-    const stored = await token.findFirst({
-      where: { token: hashedToken },
-    });
+    const stored = await token.findFirst({ where: { token: hashedToken } });
 
     if (!stored) {
-      // ⚠️ kemungkinan token reuse / dicuri
       return error(res, {
         message: "Refresh token tidak valid",
         status: 401,
@@ -264,10 +369,8 @@ const refreshTokenHandler = async (req, res, next) => {
       });
     }
 
-    // 🔥 ambil user manual (WAJIB)
-    const userData = await user.findFirst({
-      where: { id: stored.user_id },
-    });
+    // ── Ambil user ────────────────────────────────────────────
+    const userData = await user.findFirst({ where: { id: stored.user_id } });
 
     if (!userData || !userData.is_active) {
       return error(res, {
@@ -276,31 +379,11 @@ const refreshTokenHandler = async (req, res, next) => {
       });
     }
 
-    // 🔥 ROTATION (WAJIB)
-    await token.delete({
-      where: { id: stored.id },
-    });
+    // ── Token rotation: hapus lama, buat baru ─────────────────
+    await token.delete({ where: { id: stored.id } });
 
-    const payload = {
-      user_id: userData.id,
-      role: userData.role,
-    };
-
-    const newAccessToken = generateAccessToken(payload);
-    const newRefreshToken = generateRefreshToken(payload);
-
-    const newHashedToken = crypto
-      .createHash("sha256")
-      .update(newRefreshToken)
-      .digest("hex");
-
-    await token.create({
-      data: {
-        user_id: userData.id,
-        token: newHashedToken,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+      await issueTokens(userData);
 
     return success(res, {
       message: "Token diperbarui",
@@ -314,6 +397,11 @@ const refreshTokenHandler = async (req, res, next) => {
   }
 };
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// LOGOUT
+// POST /api/auth/logout
+// Body: { refreshToken? }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const logout = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
@@ -338,15 +426,20 @@ const logout = async (req, res, next) => {
   }
 };
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// FORGOT PASSWORD
+// POST /api/auth/forgot-password
+// Body: { identifier }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const forgotPassword = async (req, res, next) => {
   try {
     const { identifier } = req.body;
 
     if (!identifier?.trim()) {
-      return error(res, { message: "identifier wajib diisi", status: 400 });
+      return error(res, { message: "Identifier wajib diisi", status: 400 });
     }
 
-    // Selalu success untuk mencegah user enumeration
+    // Selalu response success untuk mencegah user enumeration
     const userData = await user.findFirst({
       where: buildWhereFromIdentifier(identifier),
     });
@@ -367,7 +460,7 @@ const forgotPassword = async (req, res, next) => {
 
       const resetUrl = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
 
-      // Kirim email (fire and forget — jangan block response)
+      // Kirim email (fire and forget)
       sendResetPasswordEmail({
         to: userData.email,
         name: userData.name,
@@ -387,7 +480,7 @@ const forgotPassword = async (req, res, next) => {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // RESET PASSWORD
 // POST /api/auth/reset-password
-// Body: { token, password }
+// Body: { tokenAccess, password }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const resetPassword = async (req, res, next) => {
   try {
@@ -411,11 +504,8 @@ const resetPassword = async (req, res, next) => {
       where: { token: tokenAccess },
     });
 
-    if (
-      !resetRecord ||
-      resetRecord.used ||
-      resetRecord.expiresAt < new Date()
-    ) {
+    // ✅ FIX: gunakan expires_at (snake_case dari DB), bukan expiresAt
+    if (!resetRecord || resetRecord.used || resetRecord.expires_at < new Date()) {
       return error(res, {
         message: "Token reset tidak valid atau sudah kedaluwarsa",
         status: 400,
@@ -424,16 +514,19 @@ const resetPassword = async (req, res, next) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // ✅ FIX: gunakan user_id (snake_case dari DB), bukan userId
     await user.update({
-      where: { id: resetRecord.userId },
+      where: { id: resetRecord.user_id },
       data: { password: hashedPassword },
     });
+
     await passwordReset.update({
       where: { id: resetRecord.id },
       data: { used: true },
     });
 
-    await token.deleteMany({ where: { userId: resetRecord.userId } });
+    // ✅ FIX: gunakan user_id bukan userId
+    await token.deleteMany({ where: { user_id: resetRecord.user_id } });
 
     return success(res, {
       message: "Password berhasil direset. Silakan login dengan password baru.",
@@ -443,10 +536,20 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GET ME
+// GET /api/auth/me
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const getMe = async (req, res) => {
-  return success(res, { data: { user: req.user } });
+  const { password: _pwd, ...safeUser } = req.user;
+  return success(res, { data: { user: safeUser } });
 };
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CHANGE PASSWORD
+// PATCH /api/auth/change-password
+// Body: { currentPassword, newPassword }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -466,6 +569,15 @@ const changePassword = async (req, res, next) => {
     }
 
     const userData = await user.findUnique({ where: { id: req.user.id } });
+
+    // Guard: user Google-only tidak punya password
+    if (!userData.password) {
+      return error(res, {
+        message: "Akun Google tidak bisa mengubah password dengan cara ini. Gunakan set-password.",
+        status: 400,
+      });
+    }
+
     const isMatch = await bcrypt.compare(currentPassword, userData.password);
 
     if (!isMatch) {
@@ -490,6 +602,7 @@ const changePassword = async (req, res, next) => {
 module.exports = {
   register,
   login,
+  googleLogin,
   logout,
   refreshTokenHandler,
   forgotPassword,

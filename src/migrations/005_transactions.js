@@ -2,8 +2,11 @@ module.exports = {
   name: "005_transactions",
 
   up: async (db) => {
+    // =========================
+    // TRANSACTIONS
+    // =========================
     await db.query(`
-      CREATE TABLE transactions (
+      CREATE TABLE IF NOT EXISTS transactions (
         id VARCHAR(50) PRIMARY KEY,
         customer_id VARCHAR(50),
         user_id VARCHAR(50) NOT NULL,
@@ -22,8 +25,11 @@ module.exports = {
       );
     `);
 
+    // =========================
+    // TRANSACTION ITEMS
+    // =========================
     await db.query(`
-      CREATE TABLE transaction_items (
+      CREATE TABLE IF NOT EXISTS transaction_items (
         id VARCHAR(50) PRIMARY KEY,
         transaction_id VARCHAR(50) NOT NULL,
         product_id VARCHAR(50) NOT NULL,
@@ -37,26 +43,93 @@ module.exports = {
       );
     `);
 
-    // -- INDEX biar query cepat
-    await db.query(`
-      CREATE INDEX idx_transactions_customer ON transactions(customer_id);
+    // =========================
+    // INDEX TRANSACTIONS
+    // =========================
+
+    const [customerIndex] = await db.query(`
+      SHOW INDEX FROM transactions
+      WHERE Key_name = 'idx_transactions_customer';
     `);
 
-    await db.query(`
-      CREATE INDEX idx_transactions_user ON transactions(user_id);
+    if (customerIndex.length === 0) {
+      await db.query(`
+        CREATE INDEX idx_transactions_customer
+        ON transactions(customer_id);
+      `);
+
+      console.log("✅ idx_transactions_customer dibuat");
+    } else {
+      console.log("⏭️ idx_transactions_customer sudah ada");
+    }
+
+    const [userIndex] = await db.query(`
+      SHOW INDEX FROM transactions
+      WHERE Key_name = 'idx_transactions_user';
     `);
 
-    await db.query(`
-      CREATE INDEX idx_transactions_status ON transactions(status);
+    if (userIndex.length === 0) {
+      await db.query(`
+        CREATE INDEX idx_transactions_user
+        ON transactions(user_id);
+      `);
+
+      console.log("✅ idx_transactions_user dibuat");
+    } else {
+      console.log("⏭️ idx_transactions_user sudah ada");
+    }
+
+    const [statusIndex] = await db.query(`
+      SHOW INDEX FROM transactions
+      WHERE Key_name = 'idx_transactions_status';
     `);
 
-    await db.query(`
-      CREATE INDEX idx_transaction_items_transaction ON transaction_items(transaction_id);
+    if (statusIndex.length === 0) {
+      await db.query(`
+        CREATE INDEX idx_transactions_status
+        ON transactions(status);
+      `);
+
+      console.log("✅ idx_transactions_status dibuat");
+    } else {
+      console.log("⏭️ idx_transactions_status sudah ada");
+    }
+
+    // =========================
+    // INDEX TRANSACTION ITEMS
+    // =========================
+
+    const [transactionIndex] = await db.query(`
+      SHOW INDEX FROM transaction_items
+      WHERE Key_name = 'idx_transaction_items_transaction';
     `);
 
-    await db.query(`
-      CREATE INDEX idx_transaction_items_product ON transaction_items(product_id);
+    if (transactionIndex.length === 0) {
+      await db.query(`
+        CREATE INDEX idx_transaction_items_transaction
+        ON transaction_items(transaction_id);
+      `);
+
+      console.log("✅ idx_transaction_items_transaction dibuat");
+    } else {
+      console.log("⏭️ idx_transaction_items_transaction sudah ada");
+    }
+
+    const [productIndex] = await db.query(`
+      SHOW INDEX FROM transaction_items
+      WHERE Key_name = 'idx_transaction_items_product';
     `);
+
+    if (productIndex.length === 0) {
+      await db.query(`
+        CREATE INDEX idx_transaction_items_product
+        ON transaction_items(product_id);
+      `);
+
+      console.log("✅ idx_transaction_items_product dibuat");
+    } else {
+      console.log("⏭️ idx_transaction_items_product sudah ada");
+    }
   },
 
   down: async (db) => {

@@ -27,7 +27,8 @@ const createCategory = async (req, res) => {
     }
 
     const catId = id && id.trim() ? id.trim() : `CAT-${Date.now()}`;
-    const catSlug = slug && slug.trim() ? generateSlug(slug) : generateSlug(name);
+    const catSlug =
+      slug && slug.trim() ? generateSlug(slug) : generateSlug(name);
 
     // Cek duplikasi ID
     const existingId = await category.findUnique({ where: { id: catId } });
@@ -40,7 +41,9 @@ const createCategory = async (req, res) => {
 
     // Cek duplikasi slug
     if (catSlug) {
-      const existingSlug = await category.findUnique({ where: { slug: catSlug } });
+      const existingSlug = await category.findUnique({
+        where: { slug: catSlug },
+      });
       if (existingSlug) {
         return error(res, {
           message: "Slug kategori sudah digunakan",
@@ -91,7 +94,7 @@ const getCategories = async (req, res) => {
         (c) =>
           c.name.toLowerCase().includes(keyword) ||
           (c.description && c.description.toLowerCase().includes(keyword)) ||
-          (c.slug && c.slug.toLowerCase().includes(keyword))
+          (c.slug && c.slug.toLowerCase().includes(keyword)),
       );
     }
 
@@ -164,7 +167,9 @@ const updateCategory = async (req, res) => {
     if (slug !== undefined) {
       const newSlug = generateSlug(slug);
       if (newSlug !== existing.slug) {
-        const slugCheck = await category.findUnique({ where: { slug: newSlug } });
+        const slugCheck = await category.findUnique({
+          where: { slug: newSlug },
+        });
         if (slugCheck) {
           return error(res, {
             message: "Slug kategori sudah digunakan",
@@ -176,7 +181,9 @@ const updateCategory = async (req, res) => {
     } else if (name !== undefined && name.trim() !== existing.name) {
       const newSlug = generateSlug(name);
       if (newSlug !== existing.slug) {
-        const slugCheck = await category.findUnique({ where: { slug: newSlug } });
+        const slugCheck = await category.findUnique({
+          where: { slug: newSlug },
+        });
         if (!slugCheck) {
           updateData.slug = newSlug;
         }

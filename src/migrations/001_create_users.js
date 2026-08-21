@@ -3,7 +3,7 @@ module.exports = {
 
   up: async (db) => {
     await db.query(`
-      CREATE TABLE users (
+      CREATE TABLE IF NOT EXISTS users (
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         email VARCHAR(100) UNIQUE,
@@ -24,10 +24,21 @@ module.exports = {
       );
     `);
 
-    // 🚀 INDEX (optional tapi bagus)
-    await db.query(`
-      CREATE INDEX idx_users_role ON users(role);
+    // Buat index jika belum ada
+    const [indexes] = await db.query(`
+      SHOW INDEX FROM users
+      WHERE Key_name = 'idx_users_role';
     `);
+
+    if (indexes.length === 0) {
+      await db.query(`
+        CREATE INDEX idx_users_role ON users(role);
+      `);
+
+      console.log("✅ idx_users_role dibuat");
+    } else {
+      console.log("⏭️ idx_users_role sudah ada");
+    }
   },
 
   down: async (db) => {

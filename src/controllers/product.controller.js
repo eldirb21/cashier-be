@@ -52,7 +52,7 @@ const createProduct = async (req, res) => {
 // 🔹 GET ALL PRODUCTS
 const getProducts = async (req, res) => {
   try {
-    const data = await product.findAll();
+    const data = await product.findMany();
 
     return res.json({
       message: "List product",

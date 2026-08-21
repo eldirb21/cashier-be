@@ -1,9 +1,9 @@
 module.exports = {
-    name: "003_password_resets",
+  name: "003_password_resets",
 
-    up: async (db) => {
-        await db.query(`
-        CREATE TABLE password_resets (
+  up: async (db) => {
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS password_resets (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             user_id BIGINT UNSIGNED NOT NULL,
             token VARCHAR(255) NOT NULL UNIQUE,
@@ -14,11 +14,9 @@ module.exports = {
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
     `);
+  },
 
-
-    },
-
-    down: async (db) => {
-        await db.query(`DROP TABLE IF EXISTS password_resets;`);
-    },
+  down: async (db) => {
+    await db.query(`DROP TABLE IF EXISTS password_resets;`);
+  },
 };

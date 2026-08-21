@@ -2,8 +2,9 @@ module.exports = {
   name: "001_create_products",
 
   up: async (db) => {
+    // Buat table jika belum ada
     await db.query(`
-      CREATE TABLE products (
+      CREATE TABLE IF NOT EXISTS products (
         id VARCHAR(50) PRIMARY KEY,
         category_id VARCHAR(50),
         supplier_id VARCHAR(50),
@@ -20,14 +21,39 @@ module.exports = {
       );
     `);
 
-    // -- INDEX biar query cepat
-    await db.query(`
-      CREATE INDEX idx_products_category ON products(category_id);
+    // Index category
+    const [categoryIndexes] = await db.query(`
+      SHOW INDEX FROM products
+      WHERE Key_name = 'idx_products_category';
     `);
 
-    await db.query(`
-      CREATE INDEX idx_products_supplier ON products(supplier_id);
+    if (categoryIndexes.length === 0) {
+      await db.query(`
+        CREATE INDEX idx_products_category
+        ON products(category_id);
+      `);
+
+      console.log("✅ idx_products_category dibuat");
+    } else {
+      console.log("⏭️ idx_products_category sudah ada");
+    }
+
+    // Index supplier
+    const [supplierIndexes] = await db.query(`
+      SHOW INDEX FROM products
+      WHERE Key_name = 'idx_products_supplier';
     `);
+
+    if (supplierIndexes.length === 0) {
+      await db.query(`
+        CREATE INDEX idx_products_supplier
+        ON products(supplier_id);
+      `);
+
+      console.log("✅ idx_products_supplier dibuat");
+    } else {
+      console.log("⏭️ idx_products_supplier sudah ada");
+    }
   },
 
   down: async (db) => {

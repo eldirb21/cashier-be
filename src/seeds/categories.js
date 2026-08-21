@@ -3,10 +3,11 @@ module.exports = {
 
   run: async (db) => {
     const categories = [
-      ["CAT-001", "Makanan", "Kategori produk makanan & camilan", "makanan", true],
-      ["CAT-002", "Minuman", "Kategori produk minuman & penyegar", "minuman", true],
-      ["CAT-003", "Snack", "Kategori produk jajan & snack ringan", "snack", true],
-      ["CAT-004", "Sembako", "Kategori kebutuhan pokok harian", "sembako", true],
+      ["CAT-001", "Makanan", "Kategori aneka produk makanan & mie instan", "makanan", true],
+      ["CAT-002", "Minuman", "Kategori aneka minuman dingin, air mineral, teh & kopi", "minuman", true],
+      ["CAT-003", "Snack", "Kategori makanan ringan, biskuit & keripik", "snack", true],
+      ["CAT-004", "Sembako", "Kategori bahan pokok seperti beras, minyak goreng & gula", "sembako", true],
+      ["CAT-005", "Perawatan Diri", "Kategori sabun, shampo, pasta gigi & deterjen", "perawatan-diri", true],
     ];
 
     for (const item of categories) {

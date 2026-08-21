@@ -32,9 +32,11 @@ components:
           example: "8992759170570"
         price:
           type: number
+          format: double
           example: 15000
         cost_price:
           type: number
+          format: double
           example: 12000
         stock:
           type: integer
@@ -52,65 +54,157 @@ components:
         created_at:
           type: string
           format: date-time
+          example: "2026-08-21T10:00:00.000Z"
         updated_at:
           type: string
           format: date-time
+          example: "2026-08-21T10:00:00.000Z"
+
+    ProductCreateRequest:
+      type: object
+      required:
+        - id
+        - name
+        - price
+        - cost_price
+      properties:
+        id:
+          type: string
+          example: "prod-1"
+        category_id:
+          type: string
+          nullable: true
+          example: "CAT-001"
+        supplier_id:
+          type: string
+          nullable: true
+          example: "SUPP-001"
+        name:
+          type: string
+          example: "Galon Le Minerale 5 L"
+        barcode:
+          type: string
+          nullable: true
+          example: "8992759170570"
+        price:
+          type: number
+          format: double
+          example: 15000
+        cost_price:
+          type: number
+          format: double
+          example: 12000
+        stock:
+          type: integer
+          default: 0
+          example: 20
+        min_stock:
+          type: integer
+          default: 0
+          example: 5
+        img_url:
+          type: string
+          nullable: true
+          example: "https://le-minerale.com/assets/img/product/le-minerale-5l.png"
+        is_active:
+          type: boolean
+          default: true
+          example: true
+
+    ProductUpdateRequest:
+      type: object
+      properties:
+        category_id:
+          type: string
+          nullable: true
+          example: "CAT-001"
+        supplier_id:
+          type: string
+          nullable: true
+          example: "SUPP-001"
+        name:
+          type: string
+          example: "Galon Le Minerale 5 L Updated"
+        barcode:
+          type: string
+          nullable: true
+          example: "8992759170570"
+        price:
+          type: number
+          format: double
+          example: 16000
+        cost_price:
+          type: number
+          format: double
+          example: 12500
+        stock:
+          type: integer
+          example: 25
+        min_stock:
+          type: integer
+          example: 5
+        img_url:
+          type: string
+          nullable: true
+          example: "https://le-minerale.com/assets/img/product/le-minerale-5l.png"
+        is_active:
+          type: boolean
+          example: true
+
+    ProductResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Product berhasil dibuat"
+        data:
+          $ref: "#/components/schemas/Product"
+
+    ProductListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "List product"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+
+    ProductMessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Product berhasil dihapus"
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Gagal mengambil data"
+        error:
+          type: string
+          example: "Database connection error"
 
 paths:
   /api/products:
     post:
-      summary: Tambah product baru (ADMIN only)
+      summary: Tambah product baru
+      description: Membuat product baru. Hanya ADMIN yang diperbolehkan.
       tags:
         - Product
       security:
         - BearerAuth: []
         - cookieAuth: []
+
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - id
-                - name
-                - price
-                - cost_price
-              properties:
-                id:
-                  type: string
-                  example: "prod-1"
-                category_id:
-                  type: string
-                  example: "CAT-001"
-                supplier_id:
-                  type: string
-                  example: "SUPP-001"
-                name:
-                  type: string
-                  example: "Galon Le Minerale 5 L"
-                barcode:
-                  type: string
-                  example: "8992759170570"
-                price:
-                  type: number
-                  example: 15000
-                cost_price:
-                  type: number
-                  example: 12000
-                stock:
-                  type: integer
-                  example: 20
-                min_stock:
-                  type: integer
-                  example: 5
-                img_url:
-                  type: string
-                  example: "https://le-minerale.com/assets/img/product/le-minerale-5l.png"
-                is_active:
-                  type: boolean
-                  default: true
-                  example: true
+              $ref: "#/components/schemas/ProductCreateRequest"
 
       responses:
         "201":
@@ -118,53 +212,61 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Product berhasil dibuat"
-                  data:
-                    $ref: "#/components/schemas/Product"
+                $ref: "#/components/schemas/ProductResponse"
+
         "400":
-          description: id, name, price, cost_price wajib diisi
+          description: Data wajib belum lengkap
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "id, name, price, cost_price wajib diisi"
+
         "401":
           description: Tidak terautentikasi
+
         "403":
-          description: Tidak punya izin (hanya ADMIN)
+          description: Tidak punya izin
+
         "500":
           description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
     get:
       summary: Ambil semua product
       tags:
         - Product
+
       responses:
         "200":
           description: List product
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "List product"
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Product"
+                $ref: "#/components/schemas/ProductListResponse"
+
         "500":
           description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /api/products/{id}:
     get:
       summary: Detail product by ID
       tags:
         - Product
+
       parameters:
         - in: path
           name: id
           required: true
+          description: ID product
           schema:
             type: string
           example: "prod-1"
@@ -175,29 +277,38 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Detail product"
-                  data:
-                    $ref: "#/components/schemas/Product"
+                $ref: "#/components/schemas/ProductResponse"
+
         "404":
           description: Product tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Product tidak ditemukan"
+
         "500":
           description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
     put:
-      summary: Update product (ADMIN / MANAGER)
+      summary: Update product
+      description: Update data product. ADMIN atau MANAGER.
       tags:
         - Product
       security:
         - BearerAuth: []
         - cookieAuth: []
+
       parameters:
         - in: path
           name: id
           required: true
+          description: ID product yang akan diupdate
           schema:
             type: string
           example: "prod-1"
@@ -207,38 +318,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                category_id:
-                  type: string
-                  example: "CAT-001"
-                supplier_id:
-                  type: string
-                  example: "SUPP-001"
-                name:
-                  type: string
-                  example: "Galon Le Minerale 5 L Updated"
-                barcode:
-                  type: string
-                  example: "8992759170570"
-                price:
-                  type: number
-                  example: 16000
-                cost_price:
-                  type: number
-                  example: 12500
-                stock:
-                  type: integer
-                  example: 25
-                min_stock:
-                  type: integer
-                  example: 5
-                img_url:
-                  type: string
-                  example: "https://le-minerale.com/assets/img/product/le-minerale-5l.png"
-                is_active:
-                  type: boolean
-                  example: true
+              $ref: "#/components/schemas/ProductUpdateRequest"
 
       responses:
         "200":
@@ -246,33 +326,44 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Product berhasil diupdate"
-                  data:
-                    $ref: "#/components/schemas/Product"
+                $ref: "#/components/schemas/ProductResponse"
+
         "401":
           description: Tidak terautentikasi
+
         "403":
           description: Tidak punya izin
+
         "404":
           description: Product tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Product tidak ditemukan"
+
         "500":
           description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
     delete:
-      summary: Hapus product (ADMIN only)
+      summary: Hapus product
+      description: Menghapus product. Hanya ADMIN yang diperbolehkan.
       tags:
         - Product
       security:
         - BearerAuth: []
         - cookieAuth: []
+
       parameters:
         - in: path
           name: id
           required: true
+          description: ID product yang akan dihapus
           schema:
             type: string
           example: "prod-1"
@@ -283,16 +374,26 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Product berhasil dihapus"
+                $ref: "#/components/schemas/ProductMessageResponse"
+
         "401":
           description: Tidak terautentikasi
+
         "403":
           description: Tidak punya izin
+
         "404":
           description: Product tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                message: "Product tidak ditemukan"
+
         "500":
           description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

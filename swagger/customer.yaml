@@ -1,0 +1,492 @@
+tags:
+  - name: Customer
+    description: Manajemen customer dan program membership / loyalty poin
+
+components:
+  schemas:
+    Customer:
+      type: object
+      required:
+        - id
+        - name
+        - member_code
+      properties:
+        id:
+          type: string
+          example: "CUST-1740000000000"
+        name:
+          type: string
+          example: "Budi Santoso"
+        phone:
+          type: string
+          nullable: true
+          example: "081234567890"
+        email:
+          type: string
+          nullable: true
+          example: "budi@mail.com"
+        address:
+          type: string
+          nullable: true
+          example: "Jl. Sudirman No. 10, Jakarta"
+        gender:
+          type: string
+          enum: [male, female, other]
+          nullable: true
+          example: "male"
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+          example: "1990-05-15"
+        member_code:
+          type: string
+          example: "MBR-M8XYZ-A1B2"
+        member_level:
+          type: string
+          enum: [regular, silver, gold, platinum]
+          example: "regular"
+        points:
+          type: integer
+          example: 150
+        total_spending:
+          type: number
+          example: 1250000
+        is_active:
+          type: boolean
+          example: true
+        joined_at:
+          type: string
+          format: date-time
+          example: "2026-01-15T08:30:00.000Z"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CustomerDetail:
+      allOf:
+        - $ref: "#/components/schemas/Customer"
+        - type: object
+          properties:
+            transaction_history:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "TRX-1740000000000"
+                  invoice_number:
+                    type: string
+                    example: "TRX-20260821-49201"
+                  grand_total:
+                    type: number
+                    example: 150000
+                  payment_method:
+                    type: string
+                    example: "qris"
+                  status:
+                    type: string
+                    example: "completed"
+                  created_at:
+                    type: string
+                    format: date-time
+
+paths:
+  /api/customers:
+    post:
+      summary: Daftar customer / member baru
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      description: Role yang diizinkan CASHIER, ADMIN, MANAGER, OWNER, SPV
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                id:
+                  type: string
+                  description: ID kustom (opsional, jika tidak diisi akan dibuat otomatis `CUST-timestamp`)
+                  example: "CUST-001"
+                name:
+                  type: string
+                  example: "Budi Santoso"
+                phone:
+                  type: string
+                  example: "081234567890"
+                email:
+                  type: string
+                  example: "budi@mail.com"
+                address:
+                  type: string
+                  example: "Jl. Sudirman No. 10, Jakarta"
+                gender:
+                  type: string
+                  enum: [male, female, other]
+                  example: "male"
+                birth_date:
+                  type: string
+                  format: date
+                  example: "1990-05-15"
+                member_code:
+                  type: string
+                  description: Kode member kustom (opsional, jika tidak diisi otomatis dibuat `MBR-xxx`)
+                  example: "MBR-BUDI-01"
+                is_active:
+                  type: boolean
+                  default: true
+                  example: true
+
+      responses:
+        "201":
+          description: Customer berhasil didaftarkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Customer berhasil didaftarkan"
+                  data:
+                    $ref: "#/components/schemas/Customer"
+        "400":
+          description: Nama customer wajib diisi / format tidak valid
+        "401":
+          description: Tidak terautentikasi
+        "403":
+          description: Tidak punya izin
+        "409":
+          description: ID, nomor HP, atau email sudah terdaftar
+        "500":
+          description: Server error
+
+    get:
+      summary: List semua customer
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Cari berdasarkan nama, nomor HP, email, atau member_code
+          example: "Budi"
+        - in: query
+          name: member_level
+          schema:
+            type: string
+            enum: [regular, silver, gold, platinum]
+          description: Filter tingkatan membership
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: Filter status aktif (true/false)
+
+      responses:
+        "200":
+          description: List customer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "List customer"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Customer"
+        "401":
+          description: Tidak terautentikasi
+        "500":
+          description: Server error
+
+  /api/customers/{id}:
+    get:
+      summary: Detail customer (by ID / member_code / phone)
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID, Member Code, atau Nomor HP Customer
+          example: "CUST-001"
+
+      responses:
+        "200":
+          description: Detail customer beserta riwayat transaksi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Detail customer"
+                  data:
+                    $ref: "#/components/schemas/CustomerDetail"
+        "401":
+          description: Tidak terautentikasi
+        "404":
+          description: Customer tidak ditemukan
+        "500":
+          description: Server error
+
+    put:
+      summary: Update data customer
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      description: Role yang diizinkan CASHIER, ADMIN, MANAGER, OWNER, SPV
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "CUST-001"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Budi Santoso Updated"
+                phone:
+                  type: string
+                  example: "081298765432"
+                email:
+                  type: string
+                  example: "budi.new@mail.com"
+                address:
+                  type: string
+                  example: "Jl. Thamrin No. 45, Jakarta"
+                gender:
+                  type: string
+                  enum: [male, female, other]
+                  example: "male"
+                birth_date:
+                  type: string
+                  format: date
+                  example: "1990-05-15"
+                is_active:
+                  type: boolean
+                  example: true
+
+      responses:
+        "200":
+          description: Customer berhasil diupdate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Customer berhasil diupdate"
+                  data:
+                    $ref: "#/components/schemas/Customer"
+        "401":
+          description: Tidak terautentikasi
+        "403":
+          description: Tidak punya izin
+        "404":
+          description: Customer tidak ditemukan
+        "409":
+          description: Nomor HP atau email sudah digunakan customer lain
+        "500":
+          description: Server error
+
+    delete:
+      summary: Hapus customer (ADMIN / OWNER only)
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "CUST-001"
+
+      responses:
+        "200":
+          description: Customer berhasil dihapus
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Customer berhasil dihapus"
+        "401":
+          description: Tidak terautentikasi
+        "403":
+          description: Tidak punya izin (Hanya ADMIN / OWNER)
+        "404":
+          description: Customer tidak ditemukan
+        "500":
+          description: Server error
+
+  /api/customers/{id}/points/add:
+    patch:
+      summary: Tambah poin & update total spending customer
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      description: Digunakan setelah transaksi selesai untuk menambah poin dan spending serta otomatis memperbarui tier/level member (regular -> silver >= 1jt -> gold >= 5jt -> platinum >= 10jt). Role CASHIER, ADMIN, MANAGER, OWNER, SPV.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "CUST-001"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                points_to_add:
+                  type: integer
+                  example: 50
+                  description: Jumlah poin yang ditambahkan
+                spending_to_add:
+                  type: number
+                  example: 500000
+                  description: Nominal belanja yang ditambahkan ke total_spending
+
+      responses:
+        "200":
+          description: Poin & spending berhasil diupdate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Poin & spending berhasil diupdate"
+                  data:
+                    $ref: "#/components/schemas/Customer"
+        "401":
+          description: Tidak terautentikasi
+        "403":
+          description: Tidak punya izin
+        "404":
+          description: Customer tidak ditemukan
+        "500":
+          description: Server error
+
+  /api/customers/{id}/points/redeem:
+    patch:
+      summary: Redeem / tukar poin customer
+      tags:
+        - Customer
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      description: Mengurangi poin loyalty customer. Role CASHIER, ADMIN, MANAGER, OWNER, SPV.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "CUST-001"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - points_to_redeem
+              properties:
+                points_to_redeem:
+                  type: integer
+                  example: 20
+                  description: Jumlah poin yang ingin ditukarkan / diredeem (> 0)
+
+      responses:
+        "200":
+          description: Poin berhasil diredeem
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "20 poin berhasil diredeem"
+                  data:
+                    $ref: "#/components/schemas/Customer"
+        "400":
+          description: points_to_redeem <= 0 atau poin tidak cukup
+        "401":
+          description: Tidak terautentikasi
+        "403":
+          description: Tidak punya izin
+        "404":
+          description: Customer tidak ditemukan
+        "500":
+          description: Server error

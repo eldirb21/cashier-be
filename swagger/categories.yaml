@@ -1,24 +1,8 @@
-openapi: 3.0.0
-info:
-  title: Category API
-  description: API untuk manajemen kategori produk
-  version: 1.0.0
-
-security:
-  - BearerAuth: []
-  - cookieAuth: []
+tags:
+  - name: Category
+    description: Manajemen kategori produk barang
 
 components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: authorization
-
   schemas:
     Category:
       type: object
@@ -68,6 +52,7 @@ paths:
               properties:
                 id:
                   type: string
+                  description: ID kustom (opsional, jika tidak diisi akan dibuat `CAT-timestamp`)
                   example: "CAT-001"
                 name:
                   type: string
@@ -80,6 +65,7 @@ paths:
                   example: "makanan"
                 is_active:
                   type: boolean
+                  default: true
                   example: true
 
       responses:
@@ -100,7 +86,13 @@ paths:
                     $ref: "#/components/schemas/Category"
 
         "400":
-          description: Validasi gagal
+          description: Validasi gagal / nama kategori wajib diisi
+
+        "401":
+          description: Tidak terautentikasi
+
+        "403":
+          description: Tidak punya izin
 
         "409":
           description: ID atau Slug sudah digunakan
@@ -118,11 +110,12 @@ paths:
           schema:
             type: string
           description: Cari berdasarkan nama / description / slug
+          example: "Makanan"
         - in: query
           name: is_active
           schema:
             type: boolean
-          description: Filter status aktif
+          description: Filter status aktif (true/false)
 
       responses:
         "200":
@@ -158,6 +151,7 @@ paths:
           required: true
           schema:
             type: string
+          description: ID atau Slug Kategori
           example: "CAT-001"
 
       responses:
@@ -208,12 +202,16 @@ paths:
               properties:
                 name:
                   type: string
+                  example: "Makanan & Minuman"
                 description:
                   type: string
+                  example: "Kategori gabungan makanan dan minuman"
                 slug:
                   type: string
+                  example: "makanan-minuman"
                 is_active:
                   type: boolean
+                  example: true
 
       responses:
         "200":
@@ -232,8 +230,17 @@ paths:
                   data:
                     $ref: "#/components/schemas/Category"
 
+        "401":
+          description: Tidak terautentikasi
+
+        "403":
+          description: Tidak punya izin
+
         "404":
           description: Kategori tidak ditemukan
+
+        "409":
+          description: Slug kategori sudah digunakan
 
         "500":
           description: Server error
@@ -268,6 +275,12 @@ paths:
                   message:
                     type: string
                     example: "Kategori berhasil dihapus"
+
+        "401":
+          description: Tidak terautentikasi
+
+        "403":
+          description: Tidak punya izin
 
         "404":
           description: Kategori tidak ditemukan

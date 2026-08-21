@@ -1,0 +1,416 @@
+tags:
+  - name: Supplier
+    description: Manajemen data supplier dan vendor barang
+
+components:
+  schemas:
+    Supplier:
+      type: object
+      required:
+        - id
+        - name
+        - code
+      properties:
+        id:
+          type: string
+          example: "SUPP-1740000000000"
+        name:
+          type: string
+          example: "PT Sumber Makmur"
+        code:
+          type: string
+          example: "SUP-M8XYZ-ABC"
+        contact_person:
+          type: string
+          nullable: true
+          example: "Hendra Wijaya"
+        phone:
+          type: string
+          nullable: true
+          example: "081122334455"
+        email:
+          type: string
+          nullable: true
+          example: "contact@sumbermakmur.com"
+        address:
+          type: string
+          nullable: true
+          example: "Kawasan Industri MM2100 Blok C-5"
+        city:
+          type: string
+          nullable: true
+          example: "Bekasi"
+        province:
+          type: string
+          nullable: true
+          example: "Jawa Barat"
+        bank_name:
+          type: string
+          nullable: true
+          example: "BCA"
+        bank_account_number:
+          type: string
+          nullable: true
+          example: "8730129841"
+        bank_account_name:
+          type: string
+          nullable: true
+          example: "PT Sumber Makmur Sejahtera"
+        notes:
+          type: string
+          nullable: true
+          example: "Pengiriman setiap hari Selasa dan Jumat"
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SupplierDetail:
+      allOf:
+        - $ref: "#/components/schemas/Supplier"
+        - type: object
+          properties:
+            products:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "prod-1"
+                  name:
+                    type: string
+                    example: "Galon Le Minerale 5 L"
+                  price:
+                    type: number
+                    example: 15000
+                  cost_price:
+                    type: number
+                    example: 12000
+                  stock:
+                    type: integer
+                    example: 20
+
+paths:
+  /api/supplier:
+    post:
+      summary: Tambah supplier baru
+      tags:
+        - Supplier
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      description: Role yang diizinkan ADMIN, MANAGER, OWNER
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                id:
+                  type: string
+                  description: ID kustom (opsional, jika kosong dibuat `SUPP-timestamp`)
+                  example: "SUPP-001"
+                name:
+                  type: string
+                  example: "PT Sumber Makmur"
+                code:
+                  type: string
+                  description: Kode supplier unik (opsional, jika kosong dibuat `SUP-xxx`)
+                  example: "SUP-SBM-01"
+                contact_person:
+                  type: string
+                  example: "Hendra Wijaya"
+                phone:
+                  type: string
+                  example: "081122334455"
+                email:
+                  type: string
+                  example: "contact@sumbermakmur.com"
+                address:
+                  type: string
+                  example: "Kawasan Industri MM2100 Blok C-5"
+                city:
+                  type: string
+                  example: "Bekasi"
+                province:
+                  type: string
+                  example: "Jawa Barat"
+                bank_name:
+                  type: string
+                  example: "BCA"
+                bank_account_number:
+                  type: string
+                  example: "8730129841"
+                bank_account_name:
+                  type: string
+                  example: "PT Sumber Makmur Sejahtera"
+                notes:
+                  type: string
+                  example: "Pengiriman setiap hari Selasa dan Jumat"
+                is_active:
+                  type: boolean
+                  default: true
+                  example: true
+
+      responses:
+        "201":
+          description: Supplier berhasil ditambahkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Supplier berhasil ditambahkan"
+                  data:
+                    $ref: "#/components/schemas/Supplier"
+        "400":
+          description: Nama supplier wajib diisi
+        "401":
+          description: Tidak terautentikasi
+        "403":
+          description: Tidak punya izin
+        "409":
+          description: ID atau kode supplier sudah digunakan
+        "500":
+          description: Server error
+
+    get:
+      summary: List semua supplier
+      tags:
+        - Supplier
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Cari berdasarkan nama, kode, contact person, telepon, atau email
+          example: "Makmur"
+        - in: query
+          name: is_active
+          schema:
+            type: boolean
+          description: Filter status aktif
+        - in: query
+          name: city
+          schema:
+            type: string
+          description: Filter kota
+          example: "Bekasi"
+        - in: query
+          name: province
+          schema:
+            type: string
+          description: Filter provinsi
+          example: "Jawa Barat"
+
+      responses:
+        "200":
+          description: List supplier
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "List supplier"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Supplier"
+        "401":
+          description: Tidak terautentikasi
+        "500":
+          description: Server error
+
+  /api/supplier/{id}:
+    get:
+      summary: Detail supplier (by ID atau Code)
+      tags:
+        - Supplier
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      description: Mengambil data supplier lengkap beserta daftar produk yang disuplai
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID atau Kode Supplier
+          example: "SUPP-001"
+
+      responses:
+        "200":
+          description: Detail supplier dan produk terkait
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Detail supplier"
+                  data:
+                    $ref: "#/components/schemas/SupplierDetail"
+        "401":
+          description: Tidak terautentikasi
+        "404":
+          description: Supplier tidak ditemukan
+        "500":
+          description: Server error
+
+    put:
+      summary: Update supplier
+      tags:
+        - Supplier
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      description: Role yang diizinkan ADMIN, MANAGER, OWNER
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "SUPP-001"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "PT Sumber Makmur Abadi"
+                code:
+                  type: string
+                  example: "SUP-SMA-01"
+                contact_person:
+                  type: string
+                  example: "Hendra Wijaya"
+                phone:
+                  type: string
+                  example: "081199887766"
+                email:
+                  type: string
+                  example: "info@sumbermakmur.com"
+                address:
+                  type: string
+                  example: "Jl. Industri Raya No. 8"
+                city:
+                  type: string
+                  example: "Bekasi"
+                province:
+                  type: string
+                  example: "Jawa Barat"
+                bank_name:
+                  type: string
+                  example: "Mandiri"
+                bank_account_number:
+                  type: string
+                  example: "1230009876543"
+                bank_account_name:
+                  type: string
+                  example: "PT Sumber Makmur Abadi"
+                notes:
+                  type: string
+                  example: "Kontrak diperpanjang s/d 2027"
+                is_active:
+                  type: boolean
+                  example: true
+
+      responses:
+        "200":
+          description: Supplier berhasil diupdate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Supplier berhasil diupdate"
+                  data:
+                    $ref: "#/components/schemas/Supplier"
+        "401":
+          description: Tidak terautentikasi
+        "403":
+          description: Tidak punya izin
+        "404":
+          description: Supplier tidak ditemukan
+        "409":
+          description: Kode supplier atau email sudah digunakan supplier lain
+        "500":
+          description: Server error
+
+    delete:
+      summary: Hapus supplier (ADMIN / OWNER only)
+      tags:
+        - Supplier
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      description: Gagal jika masih ada produk yang terhubung dengan supplier ini
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "SUPP-001"
+
+      responses:
+        "200":
+          description: Supplier berhasil dihapus
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Supplier berhasil dihapus"
+        "401":
+          description: Tidak terautentikasi
+        "403":
+          description: Tidak punya izin (Hanya ADMIN / OWNER)
+        "404":
+          description: Supplier tidak ditemukan
+        "409":
+          description: Supplier tidak bisa dihapus karena masih terhubung ke produk
+        "500":
+          description: Server error

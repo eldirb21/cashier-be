@@ -1,0 +1,492 @@
+tags:
+  - name: Transaction
+    description: Transaksi penjualan kasir dan ringkasan/rekapitulasi pendapatan
+
+components:
+  schemas:
+    TransactionItem:
+      type: object
+      required:
+        - product_id
+        - qty
+      properties:
+        id:
+          type: string
+          example: "ITEM-1740000000000-a1b2c"
+        transaction_id:
+          type: string
+          example: "TRX-1740000000000"
+        product_id:
+          type: string
+          example: "prod-1"
+        product_name:
+          type: string
+          example: "Galon Le Minerale 5 L"
+        price:
+          type: number
+          example: 15000
+        cost_price:
+          type: number
+          example: 12000
+        qty:
+          type: integer
+          example: 2
+        discount:
+          type: number
+          example: 0
+        subtotal:
+          type: number
+          example: 30000
+        created_at:
+          type: string
+          format: date-time
+
+    TransactionItemInput:
+      type: object
+      required:
+        - product_id
+        - qty
+      properties:
+        product_id:
+          type: string
+          example: "prod-1"
+        qty:
+          type: integer
+          minimum: 1
+          example: 2
+        discount:
+          type: number
+          default: 0
+          example: 0
+
+    Transaction:
+      type: object
+      required:
+        - id
+        - user_id
+        - invoice_number
+        - total_amount
+        - grand_total
+        - payment_amount
+      properties:
+        id:
+          type: string
+          example: "TRX-1740000000000"
+        customer_id:
+          type: string
+          nullable: true
+          example: "CUST-001"
+        user_id:
+          type: string
+          example: "1"
+        invoice_number:
+          type: string
+          example: "TRX-20260821-49201"
+        total_amount:
+          type: number
+          example: 30000
+        discount:
+          type: number
+          example: 0
+        tax:
+          type: number
+          example: 0
+        grand_total:
+          type: number
+          example: 30000
+        payment_method:
+          type: string
+          enum: [cash, transfer, qris, card]
+          example: "cash"
+        payment_amount:
+          type: number
+          example: 50000
+        change_amount:
+          type: number
+          example: 20000
+        status:
+          type: string
+          enum: [pending, completed, cancelled]
+          example: "completed"
+        notes:
+          type: string
+          nullable: true
+          example: "Pelanggan bayar cash pas"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TransactionDetail:
+      allOf:
+        - $ref: "#/components/schemas/Transaction"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/TransactionItem"
+
+    TransactionSummary:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            total_transactions:
+              type: integer
+              example: 45
+            total_revenue:
+              type: number
+              example: 4500000
+            total_discount:
+              type: number
+              example: 50000
+            total_tax:
+              type: number
+              example: 0
+            avg_transaction:
+              type: number
+              example: 100000
+        by_payment_method:
+          type: array
+          items:
+            type: object
+            properties:
+              payment_method:
+                type: string
+                example: "qris"
+              count:
+                type: integer
+                example: 25
+              total:
+                type: number
+                example: 2500000
+
+paths:
+  /api/transactions/summary:
+    get:
+      summary: Ringkasan & Rekap Penjualan Transaksi
+      tags:
+        - Transaction
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      description: Mengambil rekapitulasi total omset/revenue, jumlah transaksi, total diskon, rata-rata transaksi, dan rincian per metode pembayaran.
+      parameters:
+        - in: query
+          name: date_from
+          schema:
+            type: string
+            format: date
+          description: Tanggal awal (YYYY-MM-DD)
+          example: "2026-08-01"
+        - in: query
+          name: date_to
+          schema:
+            type: string
+            format: date
+          description: Tanggal akhir (YYYY-MM-DD)
+          example: "2026-08-31"
+
+      responses:
+        "200":
+          description: Rekap transaksi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Rekap transaksi"
+                  data:
+                    $ref: "#/components/schemas/TransactionSummary"
+        "401":
+          description: Tidak terautentikasi
+        "500":
+          description: Server error
+
+  /api/transactions:
+    post:
+      summary: Buat transaksi baru
+      tags:
+        - Transaction
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      description: Role yang diizinkan CASHIER, ADMIN, MANAGER, OWNER, SPV
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+                - payment_amount
+              properties:
+                id:
+                  type: string
+                  description: ID kustom (opsional, jika kosong dibuat `TRX-timestamp`)
+                  example: "TRX-001"
+                customer_id:
+                  type: string
+                  description: ID customer/member (opsional jika bukan member)
+                  example: "CUST-001"
+                items:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/TransactionItemInput"
+                discount:
+                  type: number
+                  default: 0
+                  example: 0
+                tax:
+                  type: number
+                  default: 0
+                  example: 0
+                payment_method:
+                  type: string
+                  enum: [cash, transfer, qris, card]
+                  default: "cash"
+                  example: "cash"
+                payment_amount:
+                  type: number
+                  description: Jumlah uang yang dibayarkan
+                  example: 50000
+                notes:
+                  type: string
+                  example: "Take away"
+
+      responses:
+        "201":
+          description: Transaksi berhasil dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Transaksi berhasil dibuat"
+                  data:
+                    $ref: "#/components/schemas/TransactionDetail"
+        "400":
+          description: Item kosong / qty tidak valid / jumlah bayar kurang
+        "401":
+          description: Tidak terautentikasi
+        "403":
+          description: Tidak punya izin
+        "404":
+          description: Produk di item tidak ditemukan
+        "500":
+          description: Server error
+
+    get:
+      summary: List semua transaksi
+      tags:
+        - Transaction
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Cari berdasarkan nomor invoice atau catatan
+          example: "TRX-2026"
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, completed, cancelled]
+          description: Filter status transaksi
+        - in: query
+          name: payment_method
+          schema:
+            type: string
+            enum: [cash, transfer, qris, card]
+          description: Filter metode pembayaran
+        - in: query
+          name: customer_id
+          schema:
+            type: string
+          description: Filter berdasarkan ID customer
+        - in: query
+          name: user_id
+          schema:
+            type: string
+          description: Filter berdasarkan ID kasir / user pembuat
+
+      responses:
+        "200":
+          description: List transaksi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "List transaksi"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+        "401":
+          description: Tidak terautentikasi
+        "500":
+          description: Server error
+
+  /api/transactions/{id}:
+    get:
+      summary: Detail transaksi (by ID atau Invoice Number)
+      tags:
+        - Transaction
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      description: Mengambil data transaksi lengkap beserta list item belanjaan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID Transaksi atau Nomor Invoice (contoh TRX-20260821-49201)
+          example: "TRX-001"
+
+      responses:
+        "200":
+          description: Detail transaksi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Detail transaksi"
+                  data:
+                    $ref: "#/components/schemas/TransactionDetail"
+        "401":
+          description: Tidak terautentikasi
+        "404":
+          description: Transaksi tidak ditemukan
+        "500":
+          description: Server error
+
+    delete:
+      summary: Hapus transaksi (ADMIN / OWNER only)
+      tags:
+        - Transaction
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "TRX-001"
+
+      responses:
+        "200":
+          description: Transaksi berhasil dihapus
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Transaksi berhasil dihapus"
+        "401":
+          description: Tidak terautentikasi
+        "403":
+          description: Tidak punya izin (Hanya ADMIN / OWNER)
+        "404":
+          description: Transaksi tidak ditemukan
+        "500":
+          description: Server error
+
+  /api/transactions/{id}/status:
+    patch:
+      summary: Update status transaksi
+      tags:
+        - Transaction
+      security:
+        - BearerAuth: []
+        - cookieAuth: []
+      description: Memperbarui status transaksi (pending, completed, cancelled). Role ADMIN, MANAGER, OWNER, SPV.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "TRX-001"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [pending, completed, cancelled]
+                  example: "cancelled"
+                notes:
+                  type: string
+                  example: "Dibatalkan karena pelanggan batal beli"
+
+      responses:
+        "200":
+          description: Status transaksi berhasil diupdate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Status transaksi berhasil diupdate"
+                  data:
+                    $ref: "#/components/schemas/TransactionDetail"
+        "400":
+          description: Status tidak valid
+        "401":
+          description: Tidak terautentikasi
+        "403":
+          description: Tidak punya izin
+        "404":
+          description: Transaksi tidak ditemukan
+        "500":
+          description: Server error

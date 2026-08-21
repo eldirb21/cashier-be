@@ -2,42 +2,76 @@ const swaggerJsdoc = require("swagger-jsdoc");
 const path = require("path");
 const fs = require("fs");
 
-// Ambil semua file .yaml dari folder docs
 const docsDir = path.join(__dirname, "../../swagger");
 const yamlFiles = fs
   .readdirSync(docsDir)
   .filter((file) => file.endsWith(".yaml"))
+  .sort()
   .map((file) => path.join(docsDir, file));
 
-// Konfigurasi Swagger
+const port = process.env.PORT || 4000;
+
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "Cashier App — API Documentation",
+      title: "Cashier App — Backend REST API Documentation",
       version: "1.0.0",
       description: `
-## Cara Autentikasi di Swagger
+### Dokumentasi Lengkap REST API POS / Kasir
 
-1. Panggil **POST /api/auth/login** dan catat nilai \`accessToken\` dari response.
-2. Klik tombol **Authorize 🔒** di kanan atas.
-3. Pada field **BearerAuth**, masukkan nilai \`accessToken\` (bukan refreshToken!).
-4. Klik **Authorize** → selesai, semua request akan otomatis menyertakan token.
+Modul yang tersedia:
+- **Auth**: Registrasi, Login, Google OAuth, Refresh Token, Logout, Lupa Password, Reset Password, & Profile
+- **Category**: Manajemen Kategori Produk
+- **Product**: Manajemen Stok dan Produk Barang
+- **Customer**: Manajemen Pelanggan & Loyalty Membership Poin
+- **Supplier**: Manajemen Data Vendor & Supplier Produk
+- **Transaction**: Kasir POS Penjualan & Summary / Rekap Penjualan
 
-> ⚠️ **refreshToken** hanya digunakan di endpoint \`POST /api/auth/refresh\`. Jangan gunakan sebagai Bearer token!
+---
+
+### Cara Autentikasi di Swagger UI:
+1. Jalankan endpoint **POST /api/auth/login** atau **POST /api/auth/register**.
+2. Salin token dari field \`accessToken\` yang ada di response data.
+3. Klik tombol **Authorize 🔒** di pojok kanan atas halaman ini.
+4. Pada modal dialog, masukkan nilai \`accessToken\` di kolom **BearerAuth** (format cukup paste token, *tanpa* perlu mengetik kata 'Bearer').
+5. Klik **Authorize** dan **Close**.
+6. Sekarang semua endpoint berproteksi (memerlukan token) sudah bisa dites secara langsung.
       `.trim(),
     },
     servers: [
       {
-        url: "http://localhost:4000",
-        description: "Development server",
+        url: `http://localhost:${port}`,
+        description: "Development Server",
       },
     ],
-    // securitySchemes didefinisikan di file YAML masing-masing
+    components: {
+      securitySchemes: {
+        BearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "Masukkan JWT Access Token yang didapatkan dari login / register",
+        },
+        cookieAuth: {
+          type: "apiKey",
+          in: "cookie",
+          name: "authorization",
+          description: "Token otorisasi via cookie",
+        },
+      },
+    },
+    tags: [
+      { name: "Auth", description: "Autentikasi, JWT token rotation, Google OAuth, & Profile" },
+      { name: "Category", description: "Manajemen kategori produk barang" },
+      { name: "Product", description: "Manajemen data barang dan stok produk kasir" },
+      { name: "Customer", description: "Manajemen customer dan program membership / loyalty poin" },
+      { name: "Supplier", description: "Manajemen data supplier dan vendor barang" },
+      { name: "Transaction", description: "Transaksi penjualan kasir dan ringkasan/rekapitulasi pendapatan" },
+    ],
   },
   apis: yamlFiles,
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 module.exports = swaggerDocs;
-

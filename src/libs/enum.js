@@ -24,12 +24,12 @@ const StatusStore = {
 };
 
 const ROLE = {
-  CUSTOMER: "CUSTOMER",
-  CASHIER: "CASHIER",
+  OWNER: "OWNER",
+  MANAGER: "MANAGER",
   ADMIN: "ADMIN",
   SPV: "SPV",
-  MANAGER: "MANAGER",
-  OWNER: "OWNER",
+  CASHIER: "CASHIER",
+  CUSTOMER: "CUSTOMER",
   OTHER: "OTHER",
 };
 

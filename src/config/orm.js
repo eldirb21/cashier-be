@@ -1,159 +1,160 @@
 const { query, queryOne } = require("./db");
 
 function createModel(table) {
-    return {
-        // 🔍 findUnique
-        async findUnique({ where, select = ["*"] }) {
-            const key = Object.keys(where)[0];
-            const value = where[key];
+  return {
+    // 🔍 findUnique
+    async findUnique({ where, select = ["*"] }) {
+      const key = Object.keys(where)[0];
+      const value = where[key];
 
-            const columns = select.join(", ");
-            const sql = `SELECT ${columns} FROM ${table} WHERE ${key} = ? LIMIT 1`;
+      const columns = select.join(", ");
+      const sql = `SELECT ${columns} FROM ${table} WHERE ${key} = ? LIMIT 1`;
 
-            return queryOne(sql, [value]);
-        },
+      return queryOne(sql, [value]);
+    },
 
-        // 🔍 findMany
-        async findMany({ where = {}, select = ["*"] } = {}) {
-            const columns = select.join(", ");
+    // 🔍 findMany
+    async findMany({ where = {}, select = ["*"] } = {}) {
+      const columns = select.join(", ");
 
-            let sql = `SELECT ${columns} FROM ${table}`;
-            const values = [];
+      let sql = `SELECT ${columns} FROM ${table}`;
+      const values = [];
 
-            if (Object.keys(where).length > 0) {
-                const conditions = Object.keys(where)
-                    .map((key) => {
-                        values.push(where[key]);
-                        return `${key} = ?`;
-                    })
-                    .join(" AND ");
+      if (Object.keys(where).length > 0) {
+        const conditions = Object.keys(where)
+          .map((key) => {
+            values.push(where[key]);
+            return `${key} = ?`;
+          })
+          .join(" AND ");
 
-                sql += ` WHERE ${conditions}`;
-            }
+        sql += ` WHERE ${conditions}`;
+      }
 
-            return query(sql, values);
-        },
+      return query(sql, values);
+    },
 
-        // 🔍 findFirst
-        async findFirst({ where = {}, select = ["*"], orderBy } = {}) {
-            const columns = select.join(", ");
+    // 🔍 findFirst
+    async findFirst({ where = {}, select = ["*"], orderBy } = {}) {
+      const columns = select.join(", ");
 
-            let sql = `SELECT ${columns} FROM ${table}`;
-            const values = [];
+      let sql = `SELECT ${columns} FROM ${table}`;
+      const values = [];
 
-            // WHERE
-            if (Object.keys(where).length > 0) {
-                const conditions = Object.keys(where)
-                    .map((key) => {
-                        values.push(where[key]);
-                        return `${key} = ?`;
-                    })
-                    .join(" AND ");
+      // WHERE
+      if (Object.keys(where).length > 0) {
+        const conditions = Object.keys(where)
+          .map((key) => {
+            values.push(where[key]);
+            return `${key} = ?`;
+          })
+          .join(" AND ");
 
-                sql += ` WHERE ${conditions}`;
-            }
+        sql += ` WHERE ${conditions}`;
+      }
 
-            // ORDER BY (optional)
-            if (orderBy) {
-                const key = Object.keys(orderBy)[0];
-                const direction = orderBy[key].toUpperCase() === "DESC" ? "DESC" : "ASC";
-                sql += ` ORDER BY ${key} ${direction}`;
-            }
+      // ORDER BY (optional)
+      if (orderBy) {
+        const key = Object.keys(orderBy)[0];
+        const direction =
+          orderBy[key].toUpperCase() === "DESC" ? "DESC" : "ASC";
+        sql += ` ORDER BY ${key} ${direction}`;
+      }
 
-            sql += ` LIMIT 1`;
+      sql += ` LIMIT 1`;
 
-            return queryOne(sql, values);
-        },
+      return queryOne(sql, values);
+    },
 
-        // ➕ create
-        async create({ data }) {
-            const keys = Object.keys(data);
-            const values = Object.values(data);
+    // ➕ create
+    async create({ data }) {
+      const keys = Object.keys(data);
+      const values = Object.values(data);
 
-            const columns = keys.join(", ");
-            const placeholders = keys.map(() => "?").join(", ");
+      const columns = keys.join(", ");
+      const placeholders = keys.map(() => "?").join(", ");
 
-            const sql = `INSERT INTO ${table} (${columns}) VALUES (${placeholders})`;
+      const sql = `INSERT INTO ${table} (${columns}) VALUES (${placeholders})`;
 
-            const result = await query(sql, values);
+      const result = await query(sql, values);
 
-            return { id: result.insertId, ...data };
-        },
+      return { id: result.insertId, ...data };
+    },
 
-        // ✏️ update
-        async update({ where, data }) {
-            const key = Object.keys(where)[0];
-            const value = where[key];
+    // ✏️ update
+    async update({ where, data }) {
+      const key = Object.keys(where)[0];
+      const value = where[key];
 
-            const updates = Object.keys(data)
-                .map((k) => `${k} = ?`)
-                .join(", ");
+      const updates = Object.keys(data)
+        .map((k) => `${k} = ?`)
+        .join(", ");
 
-            const values = [...Object.values(data), value];
+      const values = [...Object.values(data), value];
 
-            const sql = `UPDATE ${table} SET ${updates} WHERE ${key} = ?`;
+      const sql = `UPDATE ${table} SET ${updates} WHERE ${key} = ?`;
 
-            await query(sql, values);
+      await query(sql, values);
 
-            return { ...where, ...data };
-        },
+      return { ...where, ...data };
+    },
 
-        async updateMany({ where = {}, data }) {
-            const updates = Object.keys(data)
-                .map((k) => `${k} = ?`)
-                .join(", ");
+    async updateMany({ where = {}, data }) {
+      const updates = Object.keys(data)
+        .map((k) => `${k} = ?`)
+        .join(", ");
 
-            const values = [...Object.values(data)];
+      const values = [...Object.values(data)];
 
-            let sql = `UPDATE ${table} SET ${updates}`;
+      let sql = `UPDATE ${table} SET ${updates}`;
 
-            if (Object.keys(where).length > 0) {
-                const conditions = Object.keys(where)
-                    .map((key) => {
-                        values.push(where[key]);
-                        return `${key} = ?`;
-                    })
-                    .join(" AND ");
+      if (Object.keys(where).length > 0) {
+        const conditions = Object.keys(where)
+          .map((key) => {
+            values.push(where[key]);
+            return `${key} = ?`;
+          })
+          .join(" AND ");
 
-                sql += ` WHERE ${conditions}`;
-            }
+        sql += ` WHERE ${conditions}`;
+      }
 
-            await query(sql, values);
-            return true;
-        },
+      await query(sql, values);
+      return true;
+    },
 
-        // ❌ delete
-        async delete({ where }) {
-            const key = Object.keys(where)[0];
-            const value = where[key];
+    // ❌ delete
+    async delete({ where }) {
+      const key = Object.keys(where)[0];
+      const value = where[key];
 
-            const sql = `DELETE FROM ${table} WHERE ${key} = ?`;
+      const sql = `DELETE FROM ${table} WHERE ${key} = ?`;
 
-            await query(sql, [value]);
+      await query(sql, [value]);
 
-            return true;
-        },
+      return true;
+    },
 
-        // ❌ deleteMany
-        async deleteMany({ where = {} }) {
-            let sql = `DELETE FROM ${table}`;
-            const values = [];
+    // ❌ deleteMany
+    async deleteMany({ where = {} }) {
+      let sql = `DELETE FROM ${table}`;
+      const values = [];
 
-            if (Object.keys(where).length > 0) {
-                const conditions = Object.keys(where)
-                    .map((key) => {
-                        values.push(where[key]);
-                        return `${key} = ?`;
-                    })
-                    .join(" AND ");
+      if (Object.keys(where).length > 0) {
+        const conditions = Object.keys(where)
+          .map((key) => {
+            values.push(where[key]);
+            return `${key} = ?`;
+          })
+          .join(" AND ");
 
-                sql += ` WHERE ${conditions}`;
-            }
+        sql += ` WHERE ${conditions}`;
+      }
 
-            await query(sql, values);
-            return true;
-        }
-    };
+      await query(sql, values);
+      return true;
+    },
+  };
 }
 
 module.exports = { createModel };

@@ -24,17 +24,19 @@ const createProduct = async (req, res) => {
     }
 
     const newProduct = await product.create({
-      id,
-      category_id,
-      supplier_id,
-      name,
-      barcode,
-      price,
-      cost_price,
-      stock,
-      min_stock,
-      img_url,
-      is_active,
+      data: {
+        id,
+        category_id,
+        supplier_id,
+        name,
+        barcode,
+        price,
+        cost_price,
+        stock,
+        min_stock,
+        img_url,
+        is_active,
+      },
     });
 
     return res.status(201).json({

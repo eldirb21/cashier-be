@@ -71,7 +71,7 @@ const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const data = await product.findById(id);
+    const data = await product.findFirst({ where: { id } });
 
     if (!data) {
       return res.status(404).json({
@@ -96,16 +96,16 @@ const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const existing = await product.findById(id);
+    const existing = await product.findFirst({ where: { id } });
     if (!existing) {
       return res.status(404).json({
         message: "Product tidak ditemukan",
       });
     }
 
-    await product.update(id, req.body);
+    await product.update({ where: { id }, data: req.body });
 
-    const updated = await product.findById(id);
+    const updated = await product.findUnique({ where: { id } });
 
     return res.json({
       message: "Product berhasil diupdate",
@@ -124,14 +124,14 @@ const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const existing = await product.findById(id);
+    const existing = await product.findFirst({ where: { id } });
     if (!existing) {
       return res.status(404).json({
         message: "Product tidak ditemukan",
       });
     }
 
-    await product.delete(id);
+    await product.delete({ where: { id } });
 
     return res.json({
       message: "Product berhasil dihapus",

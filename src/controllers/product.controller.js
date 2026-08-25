@@ -1,4 +1,5 @@
 const { product } = require("../models");
+const { getListParams } = require("../utils/listParams");
 
 // 🔹 CREATE PRODUCT
 const createProduct = async (req, res) => {
@@ -52,22 +53,64 @@ const createProduct = async (req, res) => {
 };
 
 // 🔹 GET ALL PRODUCTS
+
 const getProducts = async (req, res) => {
   try {
-    const data = await product.findMany();
+    const { page, size, search, skip, take } = getListParams(req);
+    const { category_id } = req.query;
+
+    const where = {
+      is_active: true,
+    };
+
+    if (category_id) {
+      where.category_id = category_id;
+    }
+
+    if (search) {
+      where.OR = [
+        {
+          name: {
+            contains: search,
+          },
+        },
+        {
+          barcode: {
+            contains: search,
+          },
+        },
+      ];
+    }
+
+    const allData = await product.findMany({
+      where,
+    });
+
+    const total = allData.length;
+
+    const data = allData.slice(skip, skip + take);
 
     return res.json({
       message: "List product",
       data,
+      pagination: {
+        page,
+        size,
+        total,
+        total_pages: Math.ceil(total / size),
+        has_next: page < Math.ceil(total / size),
+        has_previous: page > 1,
+      },
     });
   } catch (err) {
+    console.error("getProducts error:", err);
+
     return res.status(500).json({
       message: "Gagal mengambil data",
       error: err.message,
     });
   }
 };
-
 // 🔹 GET PRODUCT BY ID
 const getProductById = async (req, res) => {
   try {

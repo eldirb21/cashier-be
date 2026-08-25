@@ -16,19 +16,36 @@ function createModel(table) {
     // 🔍 findMany
     async findMany({ where = {}, select = ["*"] } = {}) {
       const columns = select.join(", ");
-
       let sql = `SELECT ${columns} FROM ${table}`;
       const values = [];
+      const clauses = [];
 
-      if (Object.keys(where).length > 0) {
-        const conditions = Object.keys(where)
-          .map((key) => {
-            values.push(where[key]);
-            return `${key} = ?`;
-          })
-          .join(" AND ");
+      for (const key of Object.keys(where)) {
+        const val = where[key];
 
-        sql += ` WHERE ${conditions}`;
+        if (key === "OR" && Array.isArray(val)) {
+          const orParts = val.map((cond) => {
+            const [field, op] = Object.entries(cond)[0];
+            const [opType, opVal] = Object.entries(op)[0];
+            if (opType === "contains") {
+              values.push(`%${opVal}%`);
+              return `${field} LIKE ?`;
+            }
+            values.push(opVal);
+            return `${field} = ?`;
+          });
+          clauses.push(`(${orParts.join(" OR ")})`);
+        } else if (val && typeof val === "object" && "contains" in val) {
+          values.push(`%${val.contains}%`);
+          clauses.push(`${key} LIKE ?`);
+        } else {
+          values.push(val);
+          clauses.push(`${key} = ?`);
+        }
+      }
+
+      if (clauses.length > 0) {
+        sql += ` WHERE ${clauses.join(" AND ")}`;
       }
 
       return query(sql, values);

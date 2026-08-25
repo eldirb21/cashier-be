@@ -97,10 +97,9 @@ const getCategories = async (req, res) => {
           (c.slug && c.slug.toLowerCase().includes(keyword)),
       );
     }
-
     return success(res, {
       message: "List kategori berhasil diambil",
-      data,
+      data: { data },
     });
   } catch (err) {
     return error(res, {

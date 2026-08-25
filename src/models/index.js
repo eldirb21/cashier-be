@@ -13,4 +13,14 @@ const transactionItem = createModel("transaction_items");
 const customer = createModel("customers");
 const supplier = createModel("suppliers");
 
-module.exports = { user, token, passwordReset, product, category, transaction, transactionItem, customer, supplier };
+module.exports = {
+  user,
+  token,
+  passwordReset,
+  product,
+  category,
+  transaction,
+  transactionItem,
+  customer,
+  supplier,
+};

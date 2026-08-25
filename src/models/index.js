@@ -12,6 +12,8 @@ const transactionItem = createModel("transaction_items");
 
 const customer = createModel("customers");
 const supplier = createModel("suppliers");
+const cart = createModel("cart");
+const cartItem = createModel("cart_item");
 
 module.exports = {
   user,
@@ -23,4 +25,6 @@ module.exports = {
   transactionItem,
   customer,
   supplier,
+  cart,
+  cartItem,
 };
